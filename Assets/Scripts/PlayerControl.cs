@@ -7,10 +7,14 @@ public class PlayerControl : NetworkBehaviour
 {
     public static event Action<Transform> LocalPlayerSpawned;
 
+    [Header("Movimiento")]
     public float speed = 5f;
     public float rollForce = 8f;
     public float groundCheckDistance = 1.1f;
     public LayerMask groundLayer;
+
+    [Header("Disparo")]
+    [SerializeField] private Transform firePoint; 
 
     private Rigidbody rb;
     private Animator animator;
@@ -56,14 +60,23 @@ public class PlayerControl : NetworkBehaviour
 
     void Update()
     {
+        if (!IsOwner) return;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            ShootServerRpc(firePoint.position, firePoint.rotation);
+        }
+
         if (targetDirection.magnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
+
         TryRoll();
     }
 
+    #region Roll
     private void TryRoll()
     {
         if (Input.GetKeyDown(KeyCode.Space) && IsGrounded() && !isRolling)
@@ -75,6 +88,7 @@ public class PlayerControl : NetworkBehaviour
             PerformRollServerRpc(rollDir);
         }
     }
+
     private bool IsGrounded()
     {
         return Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
@@ -82,18 +96,19 @@ public class PlayerControl : NetworkBehaviour
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.green;
-        Debug.DrawLine(transform.position, transform.position + Vector3.down * groundCheckDistance);
+        if (firePoint != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(firePoint.position, 0.1f); 
+        }
     }
 
-    #region Roll
     [ServerRpc(RequireOwnership = false)]
     private void PerformRollServerRpc(Vector3 dir, ServerRpcParams rpcParams = default)
     {
         if (rpcParams.Receive.SenderClientId != OwnerClientId) return;
 
         rb.AddForce(dir * rollForce, ForceMode.Impulse);
-
         StartCoroutine(RollCoroutine());
 
         RollStateClientRpc(true);
@@ -102,7 +117,6 @@ public class PlayerControl : NetworkBehaviour
     private IEnumerator RollCoroutine()
     {
         yield return new WaitForSeconds(1.5f);
-
         RollStateClientRpc(false);
     }
 
@@ -110,11 +124,9 @@ public class PlayerControl : NetworkBehaviour
     private void RollStateClientRpc(bool state)
     {
         isRolling = state;
-
         if (animator != null)
             animator.SetBool("isRoll", state);
     }
-
     #endregion
 
     #region Animaciones
@@ -131,9 +143,7 @@ public class PlayerControl : NetworkBehaviour
 
         animator.SetFloat("VelX", h);
         animator.SetFloat("VelY", v);
-
-        bool isMoving = (h != 0 || v != 0);
-        animator.SetBool("isMove", isMoving);
+        animator.SetBool("isMove", (h != 0 || v != 0));
     }
     #endregion
 
@@ -151,4 +161,27 @@ public class PlayerControl : NetworkBehaviour
     }
     #endregion
 
+    #region Disparo
+    [ServerRpc]
+    private void ShootServerRpc(Vector3 pos, Quaternion rot, ServerRpcParams rpcParams = default)
+    {
+        GameObject bullet = BulletPool.Instance.GetBullet();
+        if (bullet != null)
+        {
+            bullet.transform.position = pos;
+            bullet.transform.rotation = rot;
+            bullet.SetActive(true);
+
+            ShootClientRpc(bullet.GetComponent<NetworkObject>().NetworkObjectId);
+        }
+    }
+    [ClientRpc]
+    private void ShootClientRpc(ulong bulletId)
+    {
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(bulletId, out NetworkObject netObj))
+        {
+            netObj.gameObject.SetActive(true);
+        }
+    }
+    #endregion
 }

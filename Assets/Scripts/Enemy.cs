@@ -34,7 +34,7 @@ public class Enemy : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Bullet"))
         {
             GetComponent<NetworkObject>().Despawn();
         }
