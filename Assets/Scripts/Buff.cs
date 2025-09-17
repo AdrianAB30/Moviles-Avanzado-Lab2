@@ -16,11 +16,6 @@ public class Buff : NetworkBehaviour
                 int bonus = Random.Range(1, 4); 
                 player.ApplyBuffServerRpc(bonus);
                 Debug.Log("Jugador agarró buff + " + bonus);
-
-                var renderer = player.GetComponentInChildren<Renderer>();
-                renderer.material.DOColor(Color.yellow, 0.2f).OnComplete(() => {
-                    renderer.material.DOColor(Color.white, 0.2f);
-                });
             }
 
             GetComponent<NetworkObject>().Despawn();

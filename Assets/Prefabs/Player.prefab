@@ -440,8 +440,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.2244232, y: 2.3914738, z: 1.0772848}
-  m_Center: {x: 0.057380795, y: 1.1917076, z: 0.1583662}
+  m_Size: {x: 0.87732697, y: 2.3716397, z: 0.680604}
+  m_Center: {x: 0.022671223, y: 1.1817906, z: 0.059195995}
 --- !u!54 &3857588086262741037
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -467,7 +467,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!114 &3482240337136242114
 MonoBehaviour:
@@ -504,17 +504,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 5
   groundCheckDistance: 0.05
+  rotationSpeed: 15
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
   punchCooldown: 2
-  maxHealth: 50
-  baseDamage: 10
+  maxHealth: 100
   baseAttack: 10
   respawnRange: 15
   respawnHeight: 1
   respawnDelay: 2
-  rotationSpeed: 15
+  popupPrefab: {fileID: 4578509777122675179, guid: ca355117e7b7d084ca1c95845c79693a, type: 3}
 --- !u!114 &496823663540710334
 MonoBehaviour:
   m_ObjectHideFlags: 0

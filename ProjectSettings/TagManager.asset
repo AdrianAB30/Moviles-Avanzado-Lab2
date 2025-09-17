@@ -8,6 +8,7 @@ TagManager:
   - Bullet
   - Enemy
   - Punch
+  - Buff
   layers:
   - Default
   - TransparentFX
