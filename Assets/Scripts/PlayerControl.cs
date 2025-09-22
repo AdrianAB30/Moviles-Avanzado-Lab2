@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Collections;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +8,6 @@ using DG.Tweening;
 
 public class PlayerControl : NetworkBehaviour
 {
-    public static event Action<Transform> LocalPlayerSpawned;
 
     [Header("Movimiento")]
     public float speed = 5f;
@@ -19,18 +19,22 @@ public class PlayerControl : NetworkBehaviour
     [Header("Combate")]
     [SerializeField] private float punchCooldown = 1.0f;
     private bool canPunch = true;
-    [SerializeField] private int maxHealth = 100;
-    private NetworkVariable<int> health = new NetworkVariable<int>();
-    [SerializeField] private int baseAttack = 10;
-    private NetworkVariable<int> attackPower = new NetworkVariable<int>();
+    public int maxHealth = 100;
 
     [Header("Respawn")]
     [SerializeField] private float respawnRange = 15f;
     [SerializeField] private float respawnHeight = 1f;
     [SerializeField] private float respawnDelay = 1f;
+    [SerializeField] private float deathAnimDuration = 1.0f;
 
     [Header("PopUpDamage")]
     [SerializeField] private GameObject popupPrefab;
+
+    [Header("Network Variables For Player")]
+    public NetworkVariable<FixedString32Bytes> accountID = new();
+    private NetworkVariable<int> health = new();
+    private NetworkVariable<int> attackPower = new(0);
+    public NetworkVariable<int> baseAttack = new(10);
 
     private Rigidbody rb;
     private Animator animator;
@@ -54,11 +58,8 @@ public class PlayerControl : NetworkBehaviour
         if (IsServer)
         {
             health.Value = maxHealth;
-            attackPower.Value = baseAttack;
+            attackPower.Value = baseAttack.Value;
         }
-
-        if (IsOwner)
-            LocalPlayerSpawned?.Invoke(transform);
 
         uiPlayer = GetComponentInChildren<UIPlayer>(true);
         health.OnValueChanged += OnHealthChanged;
@@ -84,13 +85,21 @@ public class PlayerControl : NetworkBehaviour
         horizontal = Input.GetAxisRaw("Horizontal");
         vertical = Input.GetAxisRaw("Vertical");
 
-        Vector3 move = new Vector3(horizontal, 0, vertical) * speed;
-        rb.MovePosition(rb.position + move * Time.deltaTime);
+        Vector3 move = new Vector3(horizontal, 0, vertical);
 
-        UpdateMoveAnimationServerRpc(horizontal, vertical);
+        if (move.sqrMagnitude > 0.01f)
+        {
+            move = move.normalized * speed;
+            rb.linearVelocity = move;
 
-        if (move != Vector3.zero)
+            UpdateMoveAnimationServerRpc(horizontal, vertical);
             UpdateRotationServerRpc(move.normalized);
+        }
+        else
+        {
+            rb.linearVelocity = Vector3.zero;
+            UpdateMoveAnimationServerRpc(0, 0);
+        }
     }
 
     void Update()
@@ -136,9 +145,7 @@ public class PlayerControl : NetworkBehaviour
         if (animator != null)
         {
             if (IsOwner)
-            {
                 canMove = false;
-            }
 
             animator.SetTrigger("isTaunt");
         }
@@ -192,7 +199,7 @@ public class PlayerControl : NetworkBehaviour
         if (animator != null)
         {
             canMove = false;
-            rb.linearVelocity = Vector3.zero; // <- respetando tu preferencia
+            rb.linearVelocity = Vector3.zero;
             animator.SetTrigger("isPunch");
         }
     }
@@ -244,6 +251,7 @@ public class PlayerControl : NetworkBehaviour
         if (isDead) return;
 
         health.Value -= dmg;
+
         ShowPopupServerRpc(-dmg, false);
         Debug.Log($"{OwnerClientId} recibió {dmg} de daño. Vida actual: {health.Value}");
 
@@ -251,19 +259,38 @@ public class PlayerControl : NetworkBehaviour
         {
             isDead = true;
             Debug.Log($"{OwnerClientId} murió.");
-            attackPower.Value = baseAttack;
-            HidePlayerClientRpc();
-            StartCoroutine(RespawnCoroutine());
+            attackPower.Value = baseAttack.Value;
+
+            PlayDeathClientRpc();
+
+            StartCoroutine(DeathAndRespawnCoroutine());
         }
     }
 
-    private IEnumerator RespawnCoroutine()
+    [Rpc(SendTo.ClientsAndHost)]
+    private void PlayDeathClientRpc()
     {
+        if (animator != null)
+        {
+            if (IsOwner) canMove = false;
+
+            animator.SetTrigger("isHit");
+        }
+    }
+
+    private IEnumerator DeathAndRespawnCoroutine()
+    {
+        yield return new WaitForSeconds(deathAnimDuration);
+
+        HidePlayerClientRpc();
+
         yield return new WaitForSeconds(respawnDelay);
+
         Vector3 spawnPos = GetRandomSpawnPosition();
         rb.position = spawnPos;
-        rb.linearVelocity = Vector3.zero; // <- respetando tu preferencia
+        rb.linearVelocity = Vector3.zero;
         health.Value = maxHealth;
+
         ShowPlayerClientRpc();
         isDead = false;
     }
@@ -342,4 +369,21 @@ public class PlayerControl : NetworkBehaviour
         Color popupColor = isBuff ? Color.yellow : Color.red;
         popupObj.GetComponent<DamagePopUps>().SetupClientRpc(value, popupColor);
     }
+
+    public override void OnNetworkDespawn()
+    {
+        GameManager.Instance.playerStatesByAccountID[accountID.Value.ToString()] =
+            new PlayerData(accountID.Value.ToString(), transform.position, health.Value, attackPower.Value);
+
+        print($"me desconecte {NetworkManager.Singleton.LocalClientId} y se guardó la data de {accountID.Value}");
+    }
+
+    public void SetData(PlayerData playerData)
+    {
+        accountID.Value = playerData.accountID;
+        health.Value = playerData.health;
+        attackPower.Value = playerData.baseAttack;
+        transform.position = playerData.position;
+    }
 }
+

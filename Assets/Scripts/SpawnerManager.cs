@@ -8,16 +8,13 @@ public class SpawnerManager : NetworkBehaviour
     [SerializeField] private GameObject buffPrefab;
 
     [Header("Spawn Settings")]
-    [SerializeField] private Vector3[] buffSpawnPoints; 
+    [SerializeField] private Transform[] buffSpawnPoints;
     [SerializeField] private float buffSpawnInterval = 10f;
-
 
     public override void OnNetworkSpawn()
     {
-        if (IsServer) 
-        {
+        if (IsServer)
             StartCoroutine(SpawnBuffsCoroutine());
-        }
     }
 
     private IEnumerator SpawnBuffsCoroutine()
@@ -26,11 +23,10 @@ public class SpawnerManager : NetworkBehaviour
         {
             yield return new WaitForSeconds(buffSpawnInterval);
 
-            Vector3 spawnPos = buffSpawnPoints[Random.Range(0, buffSpawnPoints.Length)];
+            Transform spawnPoint = buffSpawnPoints[Random.Range(0, buffSpawnPoints.Length)];
 
-            GameObject buff = Instantiate(buffPrefab, spawnPos, Quaternion.identity);
+            GameObject buff = Instantiate(buffPrefab, spawnPoint.position, spawnPoint.rotation);
             buff.GetComponent<NetworkObject>().Spawn();
         }
     }
-
 }

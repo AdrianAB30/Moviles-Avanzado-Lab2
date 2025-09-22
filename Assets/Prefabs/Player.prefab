@@ -440,8 +440,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.87732697, y: 2.3716397, z: 0.680604}
-  m_Center: {x: 0.022671223, y: 1.1817906, z: 0.059195995}
+  m_Size: {x: 0.87732697, y: 2.3919005, z: 0.680604}
+  m_Center: {x: 0.022671223, y: 1.1716602, z: 0.059195995}
 --- !u!54 &3857588086262741037
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -468,7 +468,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &3482240337136242114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -502,19 +502,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bae6bfec1408ff4c998379f355e51af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 5
+  speed: 6
   groundCheckDistance: 0.05
   rotationSpeed: 15
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
   punchCooldown: 2
-  maxHealth: 100
-  baseAttack: 10
-  respawnRange: 15
+  maxHealth: 50
+  respawnRange: 5
   respawnHeight: 1
   respawnDelay: 2
   popupPrefab: {fileID: 4578509777122675179, guid: ca355117e7b7d084ca1c95845c79693a, type: 3}
+  accountID:
+    m_InternalValue:
+      utf8LengthInBytes: 0
+      bytes:
+        offset0000:
+          byte0000: 0
+          byte0001: 0
+          byte0002: 0
+          byte0003: 0
+          byte0004: 0
+          byte0005: 0
+          byte0006: 0
+          byte0007: 0
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        byte0016: 0
+        byte0017: 0
+        byte0018: 0
+        byte0019: 0
+        byte0020: 0
+        byte0021: 0
+        byte0022: 0
+        byte0023: 0
+        byte0024: 0
+        byte0025: 0
+        byte0026: 0
+        byte0027: 0
+        byte0028: 0
+        byte0029: 0
+  baseAttack:
+    m_InternalValue: 10
 --- !u!114 &496823663540710334
 MonoBehaviour:
   m_ObjectHideFlags: 0
